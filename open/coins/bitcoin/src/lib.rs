@@ -20,23 +20,28 @@
 // of such proprietary license or if you have any other questions, please
 // contact us at opensource@braiins.com.
 
-pub mod test_blocks;
-
-// reexport Bitcoin test structures
-pub use test_blocks::{TestBlock, TEST_BLOCKS};
-
-use packed_struct::prelude::*;
-use packed_struct_codegen::PackedStruct;
-
-use bitcoin_hashes::{sha256, HashEngine};
-// reexport Bitcoin hash to remove dependency on bitcoin_hashes in other modules
-pub use bitcoin_hashes::{hex::FromHex, sha256d::Hash as DHash, Hash as HashTrait};
-
 use std::convert::TryInto;
 use std::fmt;
+use std::fmt::{Debug, Display, LowerHex};
 use std::mem::size_of;
 use std::slice::Chunks;
 use std::time;
+
+use bitcoin_hashes::{HashEngine, sha256};
+// reexport Bitcoin hash to remove dependency on bitcoin_hashes in other modules
+pub use bitcoin_hashes::{Hash as HashTrait, hex::FromHex, sha256d::Hash as DHash};
+use serde::Serialize;
+use uint::construct_uint;
+
+// reexport Bitcoin test structures
+pub use test_blocks::{TEST_BLOCKS, TestBlock};
+
+pub mod test_blocks;
+pub mod hash_test;
+
+construct_uint! {
+	pub struct U256(4);
+}
 
 /// SHA256 digest size used in Bitcoin protocol
 pub const SHA256_DIGEST_SIZE: usize = 32;
@@ -53,7 +58,7 @@ const DIFFICULTY_1_TARGET_BYTES: [u8; SHA256_DIGEST_SIZE] = [
 /// This specification does not reserve specific bits for specific purposes.
 pub const BIP320_VERSION_MASK: u32 = 0x1fffe000;
 pub const BIP320_VERSION_SHIFT: u32 = 13;
-pub const BIP320_VERSION_MAX: u32 = std::u16::MAX as u32;
+pub const BIP320_VERSION_MAX: u32 = u16::MAX as u32;
 
 /// A Bitcoin block header is 80 bytes long
 pub const BLOCK_HEADER_SIZE: usize = 80;
@@ -63,8 +68,7 @@ pub const BLOCK_HEADER_CHUNK1_SIZE: usize = 64;
 
 /// Bitcoin block header structure which can be packed to binary representation
 /// which is 80 bytes long
-#[derive(PackedStruct, Debug, Clone, Copy, Default)]
-#[packed_struct(endian = "lsb")]
+#[derive(Serialize, Debug, Clone, Copy, Default)]
 pub struct BlockHeader {
     /// Version field that reflects the current network consensus and rolled bits
     pub version: u32,
@@ -84,7 +88,9 @@ impl BlockHeader {
     /// Get binary representation of Bitcoin block header
     #[inline]
     pub fn into_bytes(self) -> [u8; BLOCK_HEADER_SIZE] {
-        self.pack()
+        let mut h = [0u8; 80];
+        bincode::serialize_into(&mut h[..], &self).unwrap();
+        h
     }
 
     /// Compute SHA256 double hash
@@ -109,7 +115,7 @@ type Sha256Array = [u8; SHA256_DIGEST_SIZE];
 pub struct Midstate(Sha256Array);
 
 impl Midstate {
-    pub fn from_hex(s: &str) -> Result<Self, bitcoin_hashes::Error> {
+    pub fn from_hex(s: &str) -> Result<Self, bitcoin_hashes::hex::Error> {
         // bitcoin crate implements `FromHex` trait for byte arrays with macro `impl_fromhex_array!`
         // this conversion is compatible with `Sha256Array` which is alias to array
         Ok(Self(FromHex::from_hex(s)?))
@@ -120,6 +126,13 @@ impl Midstate {
         MidstateWords::new(self.as_ref())
     }
 }
+
+impl From<bitcoin_hashes::sha256::Midstate> for Midstate {
+    fn from(midstate: bitcoin_hashes::sha256::Midstate) -> Self {
+        Self(midstate.0)
+    }
+}
+
 
 impl From<Sha256Array> for Midstate {
     /// Get midstate from binary representation of SHA256
@@ -141,19 +154,25 @@ impl AsRef<Sha256Array> for Midstate {
     }
 }
 
-macro_rules! midstate_hex_fmt_impl(
-    ($imp:ident) => (
-        impl ::std::fmt::$imp for Midstate {
-            fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                ::bitcoin_hashes::hex::format_hex(self.as_ref(), fmt)
-            }
-        }
-    )
-);
 
-midstate_hex_fmt_impl!(Debug);
-midstate_hex_fmt_impl!(Display);
-midstate_hex_fmt_impl!(LowerHex);
+impl Display for Midstate {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        bitcoin_hashes::hex::format_hex(self.as_ref(), fmt)
+    }
+}
+
+impl Debug for Midstate {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        bitcoin_hashes::hex::format_hex(self.as_ref(), fmt)
+    }
+}
+
+
+impl LowerHex for Midstate {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        bitcoin_hashes::hex::format_hex(self.as_ref(), fmt)
+    }
+}
 
 /// Helper trait used by `MidstateWords` for reading little endian midstate word from slice created
 /// from original midstate bytes
@@ -219,17 +238,17 @@ impl<'a, T: FromMidstateWord<T>> DoubleEndedIterator for MidstateWords<'a, T> {
 /// target as a hexadecimal string similar to Bitcoin double hash which is SHA256 double hash
 /// printed in reverse order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Target(uint::U256);
+pub struct Target(U256);
 
 impl Target {
-    fn difficulty_1_target() -> uint::U256 {
-        uint::U256::from_big_endian(&DIFFICULTY_1_TARGET_BYTES)
+    fn difficulty_1_target() -> U256 {
+        U256::from_big_endian(&DIFFICULTY_1_TARGET_BYTES)
     }
 
     /// Create target from hexadecimal string which has the same representation as Bitcoin SHA256
     /// double hash (the hash is written in reverse order because the hash is treated as 256bit
     /// little endian number)
-    pub fn from_hex(s: &str) -> Result<Self, bitcoin_hashes::Error> {
+    pub fn from_hex(s: &str) -> Result<Self, bitcoin_hashes::hex::Error> {
         // the target is treated the same as Bitcoin's double hash
         // the hexadecimal string is already reversed so load it as a big endian
         let target_dhash = DHash::from_hex(s)?;
@@ -262,11 +281,11 @@ impl Target {
         }
 
         Ok(if exponent <= 3 {
-            Into::<uint::U256>::into(mantissa >> (8 * (3 - exponent)))
+            Into::<U256>::into(mantissa >> (8 * (3 - exponent)))
         } else {
-            Into::<uint::U256>::into(mantissa) << (8 * (exponent - 3))
+            Into::<U256>::into(mantissa) << (8 * (exponent - 3))
         }
-        .into())
+            .into())
     }
 
     /// Convert target to pool difficulty
@@ -294,7 +313,7 @@ impl Target {
     }
 
     /// Yields the U256 number that represents the target
-    pub fn into_inner(self) -> uint::U256 {
+    pub fn into_inner(self) -> U256 {
         self.0
     }
 
@@ -312,14 +331,14 @@ impl Default for Target {
     }
 }
 
-impl From<uint::U256> for Target {
+impl From<U256> for Target {
     /// Get target from 256bit integer
-    fn from(value: uint::U256) -> Self {
+    fn from(value: U256) -> Self {
         Self(value)
     }
 }
 
-impl From<Target> for uint::U256 {
+impl From<Target> for U256 {
     /// Get 256bit integer from target
     fn from(target: Target) -> Self {
         target.0
@@ -340,7 +359,7 @@ impl From<Sha256Array> for Target {
     /// Get target from binary representation of SHA256
     /// The target has the same binary representation as Bitcoin SHA256 double hash.
     fn from(bytes: Sha256Array) -> Self {
-        Self(uint::U256::from_little_endian(&bytes))
+        Self(U256::from_little_endian(&bytes))
     }
 }
 
@@ -351,13 +370,13 @@ impl From<DHash> for Target {
     }
 }
 
-impl AsRef<uint::U256> for Target {
-    fn as_ref(&self) -> &uint::U256 {
+impl AsRef<U256> for Target {
+    fn as_ref(&self) -> &U256 {
         &self.0
     }
 }
 
-macro_rules! target_hex_fmt_impl(
+macro_rules! target_hex_fmt_impl (
     ($imp:ident) => (
         impl ::std::fmt::$imp for Target {
             fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
@@ -612,10 +631,11 @@ impl fmt::Display for HashesUnit {
 
 #[cfg(test)]
 pub mod test {
-    use super::*;
+    use bitcoin_hashes::hex::ToHex;
+
     use test_blocks::TEST_BLOCKS;
 
-    use bitcoin_hashes::hex::ToHex;
+    use super::*;
 
     #[test]
     fn test_block_header() {
@@ -694,13 +714,13 @@ pub mod test {
             // * for u32 words
             midstate.clear();
             for midstate_word in block.midstate.words().rev() {
-                midstate.put_u32_be(midstate_word);
+                midstate.put_u32(midstate_word);
             }
             assert_eq!(midstate_rev[..], midstate);
             // * for u64 words
             midstate.clear();
             for midstate_word in block.midstate.words().rev() {
-                midstate.put_u64_be(midstate_word);
+                midstate.put_u64(midstate_word);
             }
             assert_eq!(midstate_rev[..], midstate);
         }
@@ -714,8 +734,8 @@ pub mod test {
 
         // the default target is equal to target with difficulty 1
         assert_eq!(
-            Into::<uint::U256>::into(Target::default()),
-            uint::U256::from_big_endian(&DIFFICULTY_1_TARGET_BYTES)
+            Into::<U256>::into(Target::default()),
+            U256::from_big_endian(&DIFFICULTY_1_TARGET_BYTES)
         );
 
         // the target is stored into byte array as a 256bit little endian integer
@@ -732,7 +752,7 @@ pub mod test {
 
         // reference value of target with difficulty 1
         let difficulty_1_target: Target =
-            uint::U256::from_big_endian(&DIFFICULTY_1_TARGET_BYTES).into();
+            U256::from_big_endian(&DIFFICULTY_1_TARGET_BYTES).into();
 
         // check conversion from difficulty
         assert_eq!(difficulty_1_target, Target::from_pool_difficulty(1));

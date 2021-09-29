@@ -22,6 +22,7 @@
 
 use bitcoin_hashes::hex::{FromHex, ToHex};
 use bitcoin_hashes::{sha256, sha256d, Hash, HashEngine};
+use crate::U256;
 
 #[test]
 fn test_midstate_computation() {
@@ -46,7 +47,7 @@ fn test_midstate_computation() {
 
     let midstate = engine.midstate();
     assert_eq!(
-        midstate,
+        midstate.0,
         // expected midstate result
         [
             0xe4, 0x8f, 0x54, 0x4a, 0x9a, 0x3a, 0xfa, 0x71, 0x45, 0x14, 0x71, 0x13, 0x4d, 0xf6,
@@ -73,8 +74,8 @@ fn test_hash_to_uint256() {
     let hash_bytes = hash.into_inner();
 
     // internal representation is always little endian
-    let target_uint256 = uint::U256::from_little_endian(&target_bytes);
-    let hash_uint256 = uint::U256::from_little_endian(&hash_bytes);
+    let target_uint256 = U256::from_little_endian(&target_bytes);
+    let hash_uint256 = U256::from_little_endian(&hash_bytes);
 
     assert_eq!(&target.to_hex(), &target_str);
     assert_eq!(&hash.to_hex(), &hash_str);
@@ -100,7 +101,7 @@ fn test_target_difficulty() {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00,
     ];
-    let difficulty_1_target_uint256 = uint::U256::from_big_endian(&difficulty_1_target_bytes);
+    let difficulty_1_target_uint256 = U256::from_big_endian(&difficulty_1_target_bytes);
 
     assert_eq!(
         &difficulty_1_target_uint256.to_hex(),
@@ -138,7 +139,7 @@ fn test_target_difficulty() {
     ];
 
     for test in tests {
-        let difficulty_target_uint256 = uint::U256::from_big_endian(&test.output);
+        let difficulty_target_uint256 = U256::from_big_endian(&test.output);
         assert_eq!(
             difficulty_1_target_uint256 / test.difficulty,
             difficulty_target_uint256
