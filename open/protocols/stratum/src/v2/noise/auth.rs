@@ -26,6 +26,7 @@ use bytes::{buf::BufMutExt, BytesMut};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::time::{Duration, SystemTime};
+use ed25519_dalek::Signer;
 
 use ii_async_compat::bytes;
 

@@ -1,6 +1,7 @@
 /target
 **/*.rs.bk
 Test.toml
+Cargo.lock
 
 # LEDE/OpenWrt build system
 .built

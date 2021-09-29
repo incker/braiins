@@ -24,7 +24,7 @@ use async_trait::async_trait;
 use bitcoin_hashes::{hex::FromHex, sha256d, Hash};
 use std::fmt::Debug;
 use uint;
-
+use ii_bitcoin::U256;
 use ii_logging::macros::*;
 
 use crate::test_utils::common::*;
@@ -153,7 +153,7 @@ pub fn build_open_channel() -> OpenStandardMiningChannel {
 }
 
 pub fn build_open_channel_success() -> OpenStandardMiningChannelSuccess {
-    let init_target_be = uint::U256::from_big_endian(&[
+    let init_target_be = U256::from_big_endian(&[
         0x00, 0x00, 0x00, 0x00, 0x3f, 0xff, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00,

@@ -24,8 +24,8 @@ hex = "0.3.2"
 packed_struct = "0.3"
 packed_struct_codegen = "0.3"
 bitcoin_hashes = "0.3.2"
-snow = "0.7.0-alpha4"
-uint = "0.5.0"
+snow = "0.8.0"
+uint = "0.9.1"
 async-trait = "0.1.17"
 ii-bitcoin = { path = "../../coins/bitcoin" }
 ii-wire = { path = "../wire" }
@@ -33,7 +33,7 @@ ii-async-compat = { path = "../../utils-rs/async-compat" }
 ii-logging = { path = "../../utils-rs/logging" }
 structopt = "0.3"
 rand = "0.7.3"
-ed25519-dalek = { version = "1.0.0-pre.3", features = ["serde"] }
+ed25519-dalek = { version = "1.0.1", features = ["serde"] }
 bs58 = { version ="0.3.0", features = ["check"] }
 anyhow = "1.0"
 

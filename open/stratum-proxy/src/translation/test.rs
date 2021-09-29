@@ -21,7 +21,7 @@
 // contact us at opensource@braiins.com.
 
 use futures::stream::StreamExt;
-
+use ii_bitcoin::U256;
 use ii_async_compat::tokio;
 
 use super::*;
@@ -174,7 +174,7 @@ fn test_diff_1_bitcoin_target() {
         0x00, 0x00,
     ];
     let expected_difficulty_1_target_uint256 =
-        uint::U256::from_big_endian(&difficulty_1_target_bytes);
+        U256::from_big_endian(&difficulty_1_target_bytes);
 
     assert_eq!(
         expected_difficulty_1_target_uint256,

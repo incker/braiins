@@ -107,7 +107,9 @@ macro_rules! generate_ed25519_structs {
             fn try_from(value: String) -> Result<Self> {
                 // Decode with checksum, don't verify version
                 let bytes = bs58::decode(value).with_check(None).into_vec()?;
-                Ok(Self::new(<$inner_encoded_struct_type>::from_bytes(&bytes)?))
+                // todo stas
+                // Ok(Self::new(<$inner_encoded_struct_type>::from_bytes(&bytes)?))
+                unimplemented!()
             }
         }
 

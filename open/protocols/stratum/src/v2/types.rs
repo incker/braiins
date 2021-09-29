@@ -21,7 +21,7 @@
 // contact us at opensource@braiins.com.
 
 //! This module provides custom types used in Stratum V2 messages
-
+use ii_bitcoin::U256;
 pub use std::convert::{TryFrom, TryInto};
 use std::fmt::{self, Debug};
 use std::ops::Deref;
@@ -49,14 +49,14 @@ impl AsMut<[u8; 32]> for Uint256Bytes {
     }
 }
 
-impl Into<uint::U256> for Uint256Bytes {
-    fn into(self) -> uint::U256 {
-        uint::U256::from_little_endian(&self.0)
+impl Into<U256> for Uint256Bytes {
+    fn into(self) -> U256 {
+        U256::from_little_endian(&self.0)
     }
 }
 
-impl From<uint::U256> for Uint256Bytes {
-    fn from(value: uint::U256) -> Self {
+impl From<U256> for Uint256Bytes {
+    fn from(value: U256) -> Self {
         let mut bytes = Uint256Bytes([0; 32]);
         value.to_little_endian(bytes.as_mut());
         bytes

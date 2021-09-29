@@ -16,10 +16,10 @@ ii-stats = { path = "../../utils-rs/stats" }
 ii-stratum = { path = "../../protocols/stratum" }
 ii-stratum-proxy = { path = "../../stratum-proxy" }
 ii-wire = { path = "../../protocols/wire" }
-async-trait = "0.1"
-failure = "0.1.5"
-once_cell = "1.2"
-downcast-rs = "1.0.4"
-hex = "0.3.1"
-git-version = "0.3.3"
-atomic_enum = "0.1"
+async-trait = "0.1.51"
+failure = "0.1.8"
+once_cell = "1.8.0"
+downcast-rs = "1.2.0"
+hex = "0.4.3"
+git-version = "0.3.5"
+atomic_enum = "0.1.1"
