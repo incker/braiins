@@ -147,17 +147,18 @@ impl ConnTranslation {
     where
         S: v2::FramedSink,
     {
-        loop {
-            // We use select! so that more than just the translation receiver as a source can be
-            // added
-            select! {
-                // Send out frames translated into V2
-                v2_translated_frame = translation_receiver.next().fuse() => {
-                    Self::v2_try_send_frame(&mut conn_sender, v2_translated_frame, &peer_addr)
-                        .await?;
-                },
-            }
-        }
+        unimplemented!()
+        // loop {
+        //     // We use select! so that more than just the translation receiver as a source can be
+        //     // added
+        //     select! {
+        //         // Send out frames translated into V2
+        //         v2_translated_frame = translation_receiver.next().fuse() => {
+        //             Self::v2_try_send_frame(&mut conn_sender, v2_translated_frame, &peer_addr)
+        //                 .await?;
+        //         },
+        //     }
+        // }
     }
 
     async fn run(self) -> Result<()> {
@@ -188,37 +189,38 @@ impl ConnTranslation {
             self.v2_peer_addr,
         ));
 
+        unimplemented!()
         // TODO: add cancel handler into the select statement
-        loop {
-            select! {
-                // Receive V1 frame and translate it to V2 message
-                v1_frame = v1_conn_rx.next().timeout(Self::V1_UPSTREAM_TIMEOUT).fuse()=> {
-                    // Unwrap the potentially elapsed timeout
-                    match v1_frame? {
-                        Some(v1_frame) => {
-                            Self::v1_handle_frame(&mut translation, v1_frame?).await?;
-                        }
-                        None => {
-                            Err(format!(
-                                "Upstream V1 stratum connection dropped ({:?})",
-                                self.v1_peer_addr
-                            ))?;
-                        }
-                    }
-                },
-                // Receive V2 frame and translate it to V1 message
-                v2_frame = v2_conn_rx.next().timeout(Self::V2_DOWNSTREAM_TIMEOUT).fuse() => {
-                    match v2_frame? {
-                        Some(v2_frame) => {
-                            Self::v2_handle_frame(&mut translation, v2_frame?).await?;
-                        }
-                        None => {
-                            Err(format!("V2 client disconnected ({:?})", self.v2_peer_addr))?;
-                        }
-                    }
-                }
-            }
-        }
+        // loop {
+        //     select! {
+        //         // Receive V1 frame and translate it to V2 message
+        //         v1_frame = v1_conn_rx.next().timeout(Self::V1_UPSTREAM_TIMEOUT).fuse()=> {
+        //             // Unwrap the potentially elapsed timeout
+        //             match v1_frame? {
+        //                 Some(v1_frame) => {
+        //                     Self::v1_handle_frame(&mut translation, v1_frame?).await?;
+        //                 }
+        //                 None => {
+        //                     Err(format!(
+        //                         "Upstream V1 stratum connection dropped ({:?})",
+        //                         self.v1_peer_addr
+        //                     ))?;
+        //                 }
+        //             }
+        //         },
+        //         // Receive V2 frame and translate it to V1 message
+        //         v2_frame = v2_conn_rx.next().timeout(Self::V2_DOWNSTREAM_TIMEOUT).fuse() => {
+        //             match v2_frame? {
+        //                 Some(v2_frame) => {
+        //                     Self::v2_handle_frame(&mut translation, v2_frame?).await?;
+        //                 }
+        //                 None => {
+        //                     Err(format!("V2 client disconnected ({:?})", self.v2_peer_addr))?;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
 

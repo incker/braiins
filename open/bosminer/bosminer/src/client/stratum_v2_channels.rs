@@ -694,30 +694,30 @@ impl StratumClient {
     {
         let mut solution_receiver = self.solution_receiver.lock().await;
 
-        while !self.status.is_shutting_down() {
-            select! {
-                frame = connection_rx.next().timeout(Self::EVENT_TIMEOUT).fuse() => {
-                    match frame {
-                        Ok(Some(frame)) => {
-                            let event_msg = build_message_from_frame(frame)?;
-                            event_msg.accept(event_handler).await;
-                        }
-                        Ok(None) | Err(_) => {
-                            Err("The remote stratum server was disconnected prematurely")?;
-                        }
-                    }
-                },
-                solution = solution_receiver.receive().fuse() => {
-                    match solution {
-                        Some(solution) => solution_handler.process_solution(solution).await?,
-                        None => {
-                            // TODO: initiate Destroying and remove error
-                            Err("Standard application shutdown")?;
-                        }
-                    }
-                },
-            }
-        }
+        // while !self.status.is_shutting_down() {
+        //     select! {
+        //         frame = connection_rx.next().timeout(Self::EVENT_TIMEOUT).fuse() => {
+        //             match frame {
+        //                 Ok(Some(frame)) => {
+        //                     let event_msg = build_message_from_frame(frame)?;
+        //                     event_msg.accept(event_handler).await;
+        //                 }
+        //                 Ok(None) | Err(_) => {
+        //                     Err("The remote stratum server was disconnected prematurely")?;
+        //                 }
+        //             }
+        //         },
+        //         solution = solution_receiver.receive().fuse() => {
+        //             match solution {
+        //                 Some(solution) => solution_handler.process_solution(solution).await?,
+        //                 None => {
+        //                     // TODO: initiate Destroying and remove error
+        //                     Err("Standard application shutdown")?;
+        //                 }
+        //             }
+        //         },
+        //     }
+        // }
         Ok(())
     }
 
@@ -777,27 +777,28 @@ impl StratumClient {
         // Flush all obsolete solutions from previous run
         self.solution_receiver.lock().await.flush();
 
-        loop {
-            let mut stop_receiver = self.stop_receiver.lock().await;
-            select! {
-                _ = self.clone().run().fuse() => {}
-                _ = stop_receiver.next() => {}
-            }
-
-            // Invalidate current job to stop working on it
-            self.job_sender.lock().await.invalidate();
-            // Flush all unprocessed solutions to empty buffer
-            // TODO: Count as a discarded solution?
-            self.solution_receiver.lock().await.flush();
-            self.solutions.lock().await.clear();
-
-            if self.status.can_stop() {
-                // NOTE: it is not safe to add here any code!
-                // The reason is that at this point the main task can be executed in parallel again
-                break;
-            }
-            // Restarting
-        }
+        unimplemented!()
+        // loop {
+        //     let mut stop_receiver = self.stop_receiver.lock().await;
+        //     select! {
+        //         _ = self.clone().run().fuse() => {}
+        //         _ = stop_receiver.next() => {}
+        //     }
+        //
+        //     // Invalidate current job to stop working on it
+        //     self.job_sender.lock().await.invalidate();
+        //     // Flush all unprocessed solutions to empty buffer
+        //     // TODO: Count as a discarded solution?
+        //     self.solution_receiver.lock().await.flush();
+        //     self.solutions.lock().await.clear();
+        //
+        //     if self.status.can_stop() {
+        //         // NOTE: it is not safe to add here any code!
+        //         // The reason is that at this point the main task can be executed in parallel again
+        //         break;
+        //     }
+        //     // Restarting
+        // }
     }
 }
 
@@ -853,56 +854,57 @@ impl TranslationHandler {
     /// - v1_translation_rx -> send
     /// terminate upon any error or timeout
     async fn run(mut self) -> error::Result<()> {
+        unimplemented!()
         //while !self.status.is_shutting_down() {
-        info!("Starting V2->V1 translation handler");
-        loop {
-            select! {
-                // Receive V1 frame and translate it to V2 message
-                v1_frame = self.v1_conn.next().timeout(StratumClient::EVENT_TIMEOUT).fuse() => {
-                    match v1_frame {
-                        Ok(Some(v1_frame)) => {
-                            let v1_msg = v1::build_message_from_frame(v1_frame?)?;
-                            v1_msg.accept(&mut self.translation).await;
-                        }
-                        Ok(None) | Err(_) => {
-                            Err("Upstream V1 stratum connection dropped terminating translation")?;
-                        }
-                    }
-                },
-                // Receive V2 frame from our client (no timeout needed) and pass it to V1
-                // translation
-                v2_frame = self.v2_client_rx.next().fuse() => {
-                    match v2_frame {
-                        Some(v2_frame) => {
-                            let v2_msg = v2::build_message_from_frame(v2_frame)?;
-                            v2_msg.accept(&mut self.translation).await;
-                        }
-                        None => {
-                            Err("V2 client shutdown, terminating translation")?;
-                        }
-                    }
-                },
-                // Receive V1 frame from the translation and send it upstream
-                v1_frame = self.v1_translation_rx.next().fuse() => {
-                    match v1_frame {
-                        Some(v1_frame) => self
-                            .v1_conn
-                            .send(v1_frame)
-                            // NOTE: this timeout is important otherwise the whole task could
-                            // block indefinitely and the above timeout for v1_conn_rx wouldn't
-                            // do anything. Besides this, we don't want to wait with system time
-                            // out in case the upstream connection just hangs
-                            .timeout(StratumClient::EVENT_TIMEOUT)
-                            .await
-                            // Unwrap timeout and actual sending error
-                            .map_err(|e| "V1 send timeout")??,
-                        None => {
-                            Err("V1 translation component terminated, terminating translation")?;
-                        }
-                    }
-                },
-            }
-        }
+        // info!("Starting V2->V1 translation handler");
+        // loop {
+        //     select! {
+        //         // Receive V1 frame and translate it to V2 message
+        //         v1_frame = self.v1_conn.next().timeout(StratumClient::EVENT_TIMEOUT).fuse() => {
+        //             match v1_frame {
+        //                 Ok(Some(v1_frame)) => {
+        //                     let v1_msg = v1::build_message_from_frame(v1_frame?)?;
+        //                     v1_msg.accept(&mut self.translation).await;
+        //                 }
+        //                 Ok(None) | Err(_) => {
+        //                     Err("Upstream V1 stratum connection dropped terminating translation")?;
+        //                 }
+        //             }
+        //         },
+        //         // Receive V2 frame from our client (no timeout needed) and pass it to V1
+        //         // translation
+        //         v2_frame = self.v2_client_rx.next().fuse() => {
+        //             match v2_frame {
+        //                 Some(v2_frame) => {
+        //                     let v2_msg = v2::build_message_from_frame(v2_frame)?;
+        //                     v2_msg.accept(&mut self.translation).await;
+        //                 }
+        //                 None => {
+        //                     Err("V2 client shutdown, terminating translation")?;
+        //                 }
+        //             }
+        //         },
+        //         // Receive V1 frame from the translation and send it upstream
+        //         v1_frame = self.v1_translation_rx.next().fuse() => {
+        //             match v1_frame {
+        //                 Some(v1_frame) => self
+        //                     .v1_conn
+        //                     .send(v1_frame)
+        //                     // NOTE: this timeout is important otherwise the whole task could
+        //                     // block indefinitely and the above timeout for v1_conn_rx wouldn't
+        //                     // do anything. Besides this, we don't want to wait with system time
+        //                     // out in case the upstream connection just hangs
+        //                     .timeout(StratumClient::EVENT_TIMEOUT)
+        //                     .await
+        //                     // Unwrap timeout and actual sending error
+        //                     .map_err(|e| "V1 send timeout")??,
+        //                 None => {
+        //                     Err("V1 translation component terminated, terminating translation")?;
+        //                 }
+        //             }
+        //         },
+        //     }
+        // }
     }
 }
 

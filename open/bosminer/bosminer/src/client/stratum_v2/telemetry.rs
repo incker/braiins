@@ -111,25 +111,26 @@ impl Client {
     }
 
     pub async fn run(mut self) -> error::Result<()> {
-        loop {
-            select! {
-                message = self.stratum_receiver.next().fuse() => {
-                    match message {
-                        Some(message) => {
-                            self.handle_message(message).await?
-                        }
-                        None => {
-                            Err("The remote endpoint stopped")?;
-                        }
-                    }
-                }
-                // Wrap telemetry data and send it upstream
-                data = self.telem_data_receiver.next().fuse() => {
-                    let data = data.ok_or("End of telemetry stream")?;
-                    self.send_telemetry(data).await?;
-                }
-            }
-        }
+        unimplemented!()
+        // loop {
+        //     select! {
+        //         message = self.stratum_receiver.next().fuse() => {
+        //             match message {
+        //                 Some(message) => {
+        //                     self.handle_message(message).await?
+        //                 }
+        //                 None => {
+        //                     Err("The remote endpoint stopped")?;
+        //                 }
+        //             }
+        //         }
+        //         // Wrap telemetry data and send it upstream
+        //         data = self.telem_data_receiver.next().fuse() => {
+        //             let data = data.ok_or("End of telemetry stream")?;
+        //             self.send_telemetry(data).await?;
+        //         }
+        //     }
+        // }
     }
 
     pub fn get_unbounded_sender(&self) -> mpsc::UnboundedSender<BytesMut> {

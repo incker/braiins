@@ -852,33 +852,33 @@ impl StratumClient {
                 })
                 .expect("BUG: stratum extension channel not available for start");
         }
-        while !self.status.is_shutting_down() {
-            select! {
-                frame = connection_rx.next().timeout(Self::EVENT_TIMEOUT).fuse() => {
-                    match frame {
-                        Ok(Some(frame)) => self.handle_frame(frame?, &mut event_handler).await?,
-                        Ok(None) | Err(_) => {
-                            Err("The remote stratum server was disconnected prematurely")?;
-                        }
-                    }
-                }
-                // Forward extension protocol frames onto the network
-                frame = extension_channel_rx.next().fuse() => {
-                    connection_tx.lock().await
-                        .send(frame.expect("BUG: extension channel must not shutdown!"))
-                        .await?;
-                }
-                solution = solution_receiver.receive().fuse() => {
-                    match solution {
-                        Some(solution) => solution_handler.process_solution(solution).await?,
-                        None => {
-                            // TODO: initiate Destroying and remove error
-                            Err("Standard application shutdown")?;
-                        }
-                    }
-                }
-            }
-        }
+        // while !self.status.is_shutting_down() {
+        //     select! {
+        //         frame = connection_rx.next().timeout(Self::EVENT_TIMEOUT).fuse() => {
+        //             match frame {
+        //                 Ok(Some(frame)) => self.handle_frame(frame?, &mut event_handler).await?,
+        //                 Ok(None) | Err(_) => {
+        //                     Err("The remote stratum server was disconnected prematurely")?;
+        //                 }
+        //             }
+        //         }
+        //         // Forward extension protocol frames onto the network
+        //         frame = extension_channel_rx.next().fuse() => {
+        //             connection_tx.lock().await
+        //                 .send(frame.expect("BUG: extension channel must not shutdown!"))
+        //                 .await?;
+        //         }
+        //         solution = solution_receiver.receive().fuse() => {
+        //             match solution {
+        //                 Some(solution) => solution_handler.process_solution(solution).await?,
+        //                 None => {
+        //                     // TODO: initiate Destroying and remove error
+        //                     Err("Standard application shutdown")?;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
         Ok(())
     }
 
@@ -954,48 +954,49 @@ impl StratumClient {
     }
 
     async fn main_task(self: Arc<Self>) {
-        // TODO: Count as a discarded solution?
-        // Flush all obsolete solutions from previous run
-        self.solution_receiver.lock().await.flush();
-
-        loop {
-            let mut stop_receiver = self.stop_receiver.lock().await;
-            select! {
-                _ = self.clone().run().fuse() => {}
-                _ = stop_receiver.next() => {}
-            }
-
-            // Notify the other end that uses the extension channel that it should restart its
-            // operation
-            // TODO Note that this error is triggered also when there is not extension channel.
-            //  It needs to be reworked once we eliminate the need for a dummy extension channel
-            //  pair
-
-            if let Err(e) = self
-                .extension_channel_sender
-                .lock()
-                .await
-                .try_send(ExtensionChannelMsg::Stop)
-            {
-                info!(
-                    "Cannot send stop notification into the extension channel: {:?}",
-                    e
-                );
-            }
-            // Invalidate current job to stop working on it
-            self.job_sender.lock().await.invalidate();
-            // Flush all unprocessed solutions to empty buffer
-            // TODO: Count as a discarded solution?
-            self.solution_receiver.lock().await.flush();
-            self.solutions.lock().await.clear();
-
-            if self.status.can_stop() {
-                // NOTE: it is not safe to add here any code!
-                // The reason is that at this point the main task can be executed in parallel again
-                break;
-            }
-            // Restarting
-        }
+        unimplemented!()
+        // // TODO: Count as a discarded solution?
+        // // Flush all obsolete solutions from previous run
+        // self.solution_receiver.lock().await.flush();
+        //
+        // loop {
+        //     let mut stop_receiver = self.stop_receiver.lock().await;
+        //     select! {
+        //         _ = self.clone().run().fuse() => {}
+        //         _ = stop_receiver.next() => {}
+        //     }
+        //
+        //     // Notify the other end that uses the extension channel that it should restart its
+        //     // operation
+        //     // TODO Note that this error is triggered also when there is not extension channel.
+        //     //  It needs to be reworked once we eliminate the need for a dummy extension channel
+        //     //  pair
+        //
+        //     if let Err(e) = self
+        //         .extension_channel_sender
+        //         .lock()
+        //         .await
+        //         .try_send(ExtensionChannelMsg::Stop)
+        //     {
+        //         info!(
+        //             "Cannot send stop notification into the extension channel: {:?}",
+        //             e
+        //         );
+        //     }
+        //     // Invalidate current job to stop working on it
+        //     self.job_sender.lock().await.invalidate();
+        //     // Flush all unprocessed solutions to empty buffer
+        //     // TODO: Count as a discarded solution?
+        //     self.solution_receiver.lock().await.flush();
+        //     self.solutions.lock().await.clear();
+        //
+        //     if self.status.can_stop() {
+        //         // NOTE: it is not safe to add here any code!
+        //         // The reason is that at this point the main task can be executed in parallel again
+        //         break;
+        //     }
+        //     // Restarting
+        // }
     }
 }
 

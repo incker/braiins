@@ -274,28 +274,29 @@ impl Client {
     }
 
     async fn main_loop(self: Arc<Self>) -> error::Result<()> {
-        let mut solution_receiver = self.solution_receiver.lock().await;
-
-        let difficulty: Difficulty = Default::default();
-        let mut regulator = DifficultyRegulator::new(self.clone(), difficulty.clone()).await;
-        let mut index = 0;
-
-        while !self.status.is_shutting_down() {
-            select! {
-                _ = self.clone().send_job_and_wait(difficulty.clone(), &mut index).fuse() => {}
-                solution = solution_receiver.receive().fuse() => {
-                    match solution {
-                        Some(solution) => self.account_solution(solution).await,
-                        None => {
-                            // TODO: initiate Destroying and remove error
-                            Err("Standard application shutdown")?;
-                        }
-                    }
-                }
-            }
-            regulator.recalculate_target().await;
-        }
-        Ok(())
+        unimplemented!()
+        // let mut solution_receiver = self.solution_receiver.lock().await;
+        //
+        // let difficulty: Difficulty = Default::default();
+        // let mut regulator = DifficultyRegulator::new(self.clone(), difficulty.clone()).await;
+        // let mut index = 0;
+        //
+        // while !self.status.is_shutting_down() {
+        //     select! {
+        //         _ = self.clone().send_job_and_wait(difficulty.clone(), &mut index).fuse() => {}
+        //         solution = solution_receiver.receive().fuse() => {
+        //             match solution {
+        //                 Some(solution) => self.account_solution(solution).await,
+        //                 None => {
+        //                     // TODO: initiate Destroying and remove error
+        //                     Err("Standard application shutdown")?;
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     regulator.recalculate_target().await;
+        // }
+        // Ok(())
     }
 
     async fn run(self: Arc<Self>) {
@@ -307,22 +308,23 @@ impl Client {
     }
 
     async fn main_task(self: Arc<Self>) {
-        loop {
-            let mut stop_receiver = self.stop_receiver.lock().await;
-            select! {
-                _ = self.clone().run().fuse() => {}
-                _ = stop_receiver.next() => {}
-            }
-
-            // Invalidate current job to stop working on it
-            self.job_sender.lock().await.invalidate();
-
-            if self.status.can_stop() {
-                // NOTE: it is not safe to add here any code!
-                break;
-            }
-            // Restarting
-        }
+        unimplemented!()
+        // loop {
+        //     let mut stop_receiver = self.stop_receiver.lock().await;
+        //     select! {
+        //         _ = self.clone().run().fuse() => {}
+        //         _ = stop_receiver.next() => {}
+        //     }
+        //
+        //     // Invalidate current job to stop working on it
+        //     self.job_sender.lock().await.invalidate();
+        //
+        //     if self.status.can_stop() {
+        //         // NOTE: it is not safe to add here any code!
+        //         break;
+        //     }
+        //     // Restarting
+        // }
     }
 }
 
